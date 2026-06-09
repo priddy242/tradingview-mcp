@@ -75,16 +75,16 @@ _ensure_socket_timeout()
 #   (egx_fibonacci, screener_service.multi_changes, screener_service.scan)
 #   through ``_scan_with_retry`` so they share the resilience layer.
 #
-# Retry budget design: kept moderate (~52s) so interactive tools fail
+# Retry budget design: kept moderate (~5s of backoff) so interactive tools fail
 # clearly rather than feeling "stuck". For sustained outages we rely on
 # the 6h stale cache to serve previously-seen symbols.
 #
 # Tunables (env vars):
 #   TRADINGVIEW_MCP_CACHE_TTL    default 60   (seconds — fresh cache)
 #   TRADINGVIEW_MCP_STALE_TTL    default 21600 (6 hours — fallback cache)
-#   TRADINGVIEW_MCP_RETRY_DELAYS default "2.0,5.0,15.0,30.0"
+#   TRADINGVIEW_MCP_RETRY_DELAYS default "1.0,4.0"
 #   TRADINGVIEW_MCP_RETRY_JITTER default 0.2  (±20% jitter on each delay)
-#   TRADINGVIEW_MCP_FAILURE_COOLDOWN_S default 60 (seconds)
+#   TRADINGVIEW_MCP_FAILURE_COOLDOWN_S default 15 (seconds)
 
 def _cache_ttl_s() -> float:
     try:
@@ -233,8 +233,8 @@ def _cache_set(key: Tuple, payload: Any) -> None:
 # but doesn't prevent it; this layer keeps us under the cliff.
 #
 # Tunables (env vars):
-#   TRADINGVIEW_MCP_MAX_INFLIGHT    default 4 (max concurrent TA calls)
-#   TRADINGVIEW_MCP_MIN_INTERVAL_S  default 0.8 (min seconds between starts)
+#   TRADINGVIEW_MCP_MAX_INFLIGHT    default 2 (max concurrent TA calls)
+#   TRADINGVIEW_MCP_MIN_INTERVAL_S  default 0.5 (min seconds between starts)
 
 
 def _max_inflight() -> int:
@@ -251,7 +251,7 @@ def _min_interval_s() -> float:
     try:
         return max(0.0, float(_os.environ.get('TRADINGVIEW_MCP_MIN_INTERVAL_S', '0.5')))
     except Exception:
-        return 1.5
+        return 0.5
 
 
 _TA_SEMAPHORE = _Semaphore(_max_inflight())

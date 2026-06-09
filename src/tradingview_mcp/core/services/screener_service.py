@@ -968,11 +968,12 @@ def run_multi_timeframe_analysis(
         try:
             analysis = get_multiple_analysis(screener=screener, interval=tf, symbols=[symbol])
             if symbol not in analysis or analysis[symbol] is None:
+                # Upstream responded but has no data for this tf (illiquid or
+                # newly-listed symbol). This is NOT an upstream cliff, so it
+                # must not count toward the consecutive-failure bail — a real
+                # response proves upstream is up, so reset the counter.
                 tf_results[tf] = {"error": f"No data for {tf}"}
-                consecutive_failures += 1
-                if consecutive_failures >= max_consec:
-                    _fill_skipped_tfs(tf_results, timeframes, "upstream cliff")
-                    break
+                consecutive_failures = 0
                 continue
             consecutive_failures = 0  # Reset on real success.
 
