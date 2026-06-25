@@ -1,4 +1,4 @@
-# TradingView MCP — Market Data & Technical Analysis for AI Assistants
+# TradingView MCP Market Data & Technical Analysis for AI Assistants
 
 <a href="https://trendshift.io/repositories/25110" target="_blank"><img src="https://trendshift.io/api/badge/repositories/25110" alt="atilaahmettaner%2Ftradingview-mcp | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
