@@ -59,6 +59,12 @@ from tradingview_mcp.core.services.options_service import (
     get_options_chain,
     get_unusual_options_activity,
 )
+from tradingview_mcp.core.services.futures_service import (
+    get_futures_overview,
+    get_futures_movers,
+    get_futures_category_snapshot,
+    get_futures_watchlist,
+)
 from tradingview_mcp.core.services.backtest_service import (
     run_backtest,
     compare_strategies as _compare_strategies,
@@ -89,10 +95,13 @@ mcp = FastMCP(
     name="TradingView Multi-Market Screener",
     instructions=(
         "Multi-market screener backed by TradingView. "
-        "Supports crypto exchanges (KuCoin, Binance, Bybit, MEXC, etc.) and stock markets "
-        "(EGX, BIST, NASDAQ, NYSE, Bursa Malaysia, HKEX, SSE, SZSE, TWSE, TPEX). "
+        "Supports crypto exchanges (KuCoin, Binance, Bybit, MEXC, etc.), stock markets "
+        "(EGX, BIST, NASDAQ, NYSE, Bursa Malaysia, HKEX, SSE, SZSE, TWSE, TPEX), "
+        "and futures markets (CME, COMEX, NYMEX, CBOT — equity index, energy, metals, "
+        "agriculture, rates, forex, crypto futures). "
         "Tools: top_gainers, top_losers, bollinger_scan, coin_analysis, multi_agent_analysis, "
-        "volume_breakout_scanner, egx_market_overview, egx_sector_scan, and more."
+        "volume_breakout_scanner, futures_market_overview, futures_top_movers, "
+        "futures_category_snapshot, futures_watchlist, egx_market_overview, and more."
     ),
 )
 
@@ -159,9 +168,15 @@ def top_losers(exchange: str = "KUCOIN", timeframe: str = "15m", limit: int = 25
 def bollinger_scan(exchange: str = "KUCOIN", timeframe: str = "4h", bbw_threshold: float = 0.04, limit: int = 50) -> list[dict]:
     """Scan for assets with low Bollinger Band Width (squeeze detection). Works with crypto and stocks.
 
+    This scans a whole EXCHANGE for squeezes (canonical name is exactly
+    `bollinger_scan`; there is no "get_bollinger_band_analysis" tool). For
+    the Bollinger read of ONE symbol, call `coin_analysis` instead.
+
+    Example: bollinger_scan(exchange="BINANCE", timeframe="15m", bbw_threshold=0.008)
+
     Args:
         exchange: Exchange — crypto: KUCOIN, BINANCE, BYBIT, MEXC; stocks: EGX, BIST, NASDAQ, NYSE, BURSA, HKEX, SSE, SZSE, TWSE, TPEX
-        timeframe: One of 5m, 15m, 1h, 4h, 1D, 1W, 1M
+        timeframe: One of 5m, 15m, 1h, 4h, 1D, 1W, 1M. Typical squeeze thresholds: 15m→0.008, 1h→0.02, 4h→0.04, 1D→0.12
         bbw_threshold: Maximum BBW value to filter (default 0.04)
         limit: Number of rows to return (max 100)
     """
@@ -207,9 +222,17 @@ def rating_filter(exchange: str = "KUCOIN", timeframe: str = "5m", rating: int =
 def coin_analysis(symbol: str, exchange: str = "KUCOIN", timeframe: str = "15m") -> dict:
     """Get detailed analysis for a specific asset (coin or stock) on specified exchange and timeframe.
 
+    This is the canonical single-symbol technical readout (there is no
+    "get_technical_analysis" or "get_technical_summary" tool — use THIS one).
+    Use `multi_timeframe_analysis` instead when you need trend alignment
+    across several timeframes, and `combined_analysis` when you also want
+    Reddit sentiment + news in the same call.
+
+    Example: coin_analysis(symbol="BTCUSDT", exchange="BINANCE", timeframe="1h")
+
     Args:
-        symbol: Symbol — crypto: "BTCUSDT", "ETHUSDT"; stocks: "COMI" (EGX), "THYAO" (BIST), "600519" (SSE), "300251" (SZSE), "2330" (TWSE), "3105" (TPEX)
-        exchange: Exchange — crypto: KUCOIN, BINANCE, MEXC; stocks: EGX, BIST, NASDAQ, NYSE, BURSA, HKEX, SSE, SZSE, TWSE, TPEX
+        symbol: Bare ticker, no exchange prefix — crypto: "BTCUSDT", "ETHUSDT"; stocks: "COMI" (EGX), "THYAO" (BIST), "600519" (SSE), "300251" (SZSE), "2330" (TWSE), "3105" (TPEX)
+        exchange: Exchange — crypto: KUCOIN, BINANCE, MEXC; stocks: EGX, BIST, NASDAQ, NYSE, BURSA, HKEX, SSE, SZSE, TWSE, TPEX. If the symbol isn't listed there, the error's `listed_on` field names exchanges that do list it.
         timeframe: Time interval (5m, 15m, 1h, 4h, 1D, 1W, 1M)
 
     Returns:
@@ -530,8 +553,15 @@ def egx_fibonacci_retracement(symbol: str, lookback: str = "52W", timeframe: str
 async def multi_timeframe_analysis(symbol: str, exchange: str = "KUCOIN") -> dict:
     """Multi-timeframe alignment analysis (Weekly → Daily → 4H → 1H → 15m).
 
+    Canonical name is exactly `multi_timeframe_analysis` (there is no
+    "get_multi_timeframe_analysis" tool). Use this for cross-timeframe trend
+    alignment on ONE symbol; for a single-timeframe deep dive use
+    `coin_analysis`; for TA + sentiment + news use `combined_analysis`.
+
+    Example: multi_timeframe_analysis(symbol="SOLUSDT", exchange="BINANCE")
+
     Args:
-        symbol: Symbol — crypto: "BTCUSDT"; stocks: "COMI" (EGX), "THYAO" (BIST), "600519" (SSE), "300251" (SZSE), "2330" (TWSE), "3105" (TPEX), "GDX" (AMEX)
+        symbol: Bare ticker, no exchange prefix — crypto: "BTCUSDT"; stocks: "COMI" (EGX), "THYAO" (BIST), "600519" (SSE), "300251" (SZSE), "2330" (TWSE), "3105" (TPEX), "GDX" (AMEX)
         exchange: Exchange — crypto: KUCOIN, BINANCE, MEXC; stocks: EGX, BIST, NASDAQ, NYSE, AMEX, NYSEARCA, PCX, SSE, SZSE, TWSE, TPEX
     """
     exchange = sanitize_exchange(exchange, "KUCOIN")
@@ -575,8 +605,14 @@ async def financial_news(symbol: str = None, category: str = "stocks", limit: in
 async def combined_analysis(symbol: str, exchange: str = "NASDAQ", timeframe: str = "1D") -> dict:
     """POWER TOOL: TradingView technical analysis + Reddit sentiment + Financial news.
 
+    Use this when you want TA AND sentiment AND news for one symbol in a
+    single call. For indicators only, `coin_analysis` is faster; for
+    cross-timeframe trend alignment use `multi_timeframe_analysis`.
+
+    Example: combined_analysis(symbol="NVDA", exchange="NASDAQ", timeframe="1D")
+
     Args:
-        symbol: Asset symbol ("AAPL", "BTCUSDT", "THYAO", "GDX")
+        symbol: Bare ticker, no exchange prefix ("AAPL", "BTCUSDT", "THYAO", "GDX")
         exchange: Exchange (NASDAQ, NYSE, AMEX, NYSEARCA, PCX, BINANCE, KUCOIN, MEXC, BIST, EGX, TWSE, TPEX)
         timeframe: Analysis timeframe (5m, 15m, 1h, 4h, 1D, 1W)
     """
@@ -843,6 +879,93 @@ def stock_options_unusual_activity(
           strike_vs_spot_pct (moneyness)}
     """
     return get_unusual_options_activity(symbol, top_n, min_volume, expiries)
+
+
+# ── Futures tools ─────────────────────────────────────────────────────────────
+
+@mcp.tool()
+def futures_market_overview(
+    category: str = "all",
+    exchanges: str = "us",
+    limit: int = 30,
+    volume_min: int = 0,
+) -> dict:
+    """Top futures contracts sorted by trading volume.
+
+    Args:
+        category:   all | equity_index | energy | metals | agriculture | rates | forex | crypto_futures
+        exchanges:  us (CME, COMEX, NYMEX, CBOT) | global (adds ICE, EUREX)
+        limit:      max contracts to return (default 30)
+        volume_min: minimum volume filter (0 = no filter)
+
+    Returns:
+        Dict with total_available count and list of contracts with OHLCV + % change.
+    """
+    try:
+        return get_futures_overview(
+            category=category,
+            exchanges=exchanges,
+            limit=limit,
+            volume_min=volume_min,
+        )
+    except Exception as exc:
+        return make_error(ErrorCode.SERVICE_ERROR, f"Futures overview failed: {exc}")
+
+
+@mcp.tool()
+def futures_top_movers(
+    direction: str = "gainers",
+    exchanges: str = "us",
+    limit: int = 20,
+    volume_min: int = 10,
+) -> dict:
+    """Futures contracts with the biggest percentage moves today.
+
+    Args:
+        direction:  gainers | losers
+        exchanges:  us | global
+        limit:      max results
+        volume_min: minimum volume filter (default 10, filters illiquid contracts)
+
+    Returns:
+        List of futures ranked by % change with OHLCV data.
+    """
+    direction = direction.lower()
+    if direction not in ("gainers", "losers"):
+        direction = "gainers"
+    try:
+        return get_futures_movers(
+            direction=direction,
+            exchanges=exchanges,
+            limit=limit,
+            volume_min=volume_min,
+        )
+    except Exception as exc:
+        return make_error(ErrorCode.SERVICE_ERROR, f"Futures movers failed: {exc}")
+
+
+@mcp.tool()
+def futures_category_snapshot(category: str = "energy") -> dict:
+    """Quote all major front-month contracts in a specific futures category.
+
+    Args:
+        category: equity_index | energy | metals | agriculture | rates | forex | crypto_futures
+
+    Returns:
+        OHLCV quotes for the standard watchlist of contracts in that category.
+        Example symbols: ES1! NQ1! (equity_index), CL1! NG1! (energy), GC1! SI1! (metals).
+    """
+    return get_futures_category_snapshot(category)
+
+
+@mcp.tool()
+def futures_watchlist() -> dict:
+    """Return the full categorized list of well-known front-month futures symbols.
+
+    Categories: equity_index, energy, metals, agriculture, rates, forex, crypto_futures.
+    Use these symbols with futures_category_snapshot or coin_analysis for deeper analysis.
+    """
+    return get_futures_watchlist()
 
 
 # ── Resource ───────────────────────────────────────────────────────────────────
