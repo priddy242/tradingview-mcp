@@ -16,6 +16,7 @@ import os
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 
 # ── Service imports ────────────────────────────────────────────────────────────
 from tradingview_mcp.core.services.coinlist import load_symbols
@@ -115,7 +116,7 @@ mcp = FastMCP(
 
 # ── Screener tools ─────────────────────────────────────────────────────────────
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Top Gainers Screener", readOnlyHint=True, openWorldHint=True))
 async def top_gainers(exchange: str = "KUCOIN", timeframe: str = "15m", limit: int = 25) -> list[dict] | dict:
     """Return top gainers for an exchange and timeframe using Bollinger Band analysis.
 
@@ -148,7 +149,7 @@ async def top_gainers(exchange: str = "KUCOIN", timeframe: str = "15m", limit: i
     return [{"symbol": r["symbol"], "changePercent": r["changePercent"], "indicators": dict(r["indicators"])} for r in rows]
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Top Losers Screener", readOnlyHint=True, openWorldHint=True))
 def top_losers(exchange: str = "KUCOIN", timeframe: str = "15m", limit: int = 25) -> list[dict] | dict:
     """Return top losers for an exchange and timeframe. Supports crypto (KUCOIN, BINANCE, MEXC) and stocks (EGX, BIST, NASDAQ).
 
@@ -171,7 +172,7 @@ def top_losers(exchange: str = "KUCOIN", timeframe: str = "15m", limit: int = 25
     return [{"symbol": r["symbol"], "changePercent": r["changePercent"], "indicators": dict(r["indicators"])} for r in rows[:limit]]
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Bollinger Squeeze Scanner", readOnlyHint=True, openWorldHint=True))
 def bollinger_scan(exchange: str = "KUCOIN", timeframe: str = "4h", bbw_threshold: float = 0.04, limit: int = 50) -> list[dict]:
     """Scan for assets with low Bollinger Band Width (squeeze detection). Works with crypto and stocks.
 
@@ -194,7 +195,7 @@ def bollinger_scan(exchange: str = "KUCOIN", timeframe: str = "4h", bbw_threshol
     return [{"symbol": r["symbol"], "changePercent": r["changePercent"], "indicators": dict(r["indicators"])} for r in rows]
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Bollinger Rating Filter", readOnlyHint=True, openWorldHint=True))
 def rating_filter(exchange: str = "KUCOIN", timeframe: str = "5m", rating: int = 2, limit: int = 25) -> list[dict] | dict:
     """Filter coins by Bollinger Band rating.
 
@@ -225,7 +226,7 @@ def rating_filter(exchange: str = "KUCOIN", timeframe: str = "5m", rating: int =
 
 # ── Coin / asset analysis ──────────────────────────────────────────────────────
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Full Technical Analysis", readOnlyHint=True, openWorldHint=True))
 def coin_analysis(symbol: str, exchange: str = "KUCOIN", timeframe: str = "15m") -> dict:
     """Get detailed analysis for a specific asset (coin or stock) on specified exchange and timeframe.
 
@@ -252,7 +253,7 @@ def coin_analysis(symbol: str, exchange: str = "KUCOIN", timeframe: str = "15m")
 
 # ── Candle pattern tools ───────────────────────────────────────────────────────
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Consecutive Candles Scanner", readOnlyHint=True, openWorldHint=True))
 def consecutive_candles_scan(
     exchange: str = "KUCOIN",
     timeframe: str = "15m",
@@ -279,7 +280,7 @@ def consecutive_candles_scan(
     return scan_consecutive_candles(exchange, timeframe, pattern_type, candle_count, min_growth, limit)
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Candlestick Pattern Analysis", readOnlyHint=True, openWorldHint=True))
 def advanced_candle_pattern(
     exchange: str = "KUCOIN",
     base_timeframe: str = "15m",
@@ -327,7 +328,7 @@ def advanced_candle_pattern(
 
 # ── Volume scanner tools ───────────────────────────────────────────────────────
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Volume Breakout Scanner", readOnlyHint=True, openWorldHint=True))
 async def volume_breakout_scanner(
     exchange: str = "KUCOIN",
     timeframe: str = "15m",
@@ -371,7 +372,7 @@ async def volume_breakout_scanner(
         )
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Volume Confirmation Analysis", readOnlyHint=True, openWorldHint=True))
 def volume_confirmation_analysis(symbol: str, exchange: str = "KUCOIN", timeframe: str = "15m") -> dict:
     """Detailed volume confirmation analysis for a specific coin.
 
@@ -385,7 +386,7 @@ def volume_confirmation_analysis(symbol: str, exchange: str = "KUCOIN", timefram
     return volume_confirmation_analyze(symbol, exchange, timeframe)
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Smart Volume Scanner", readOnlyHint=True, openWorldHint=True))
 def smart_volume_scanner(
     exchange: str = "KUCOIN",
     min_volume_ratio: float = 2.0,
@@ -423,7 +424,7 @@ def smart_volume_scanner(
 
 # ── Multi-agent analysis ───────────────────────────────────────────────────────
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Multi-Agent Market Debate", readOnlyHint=True, openWorldHint=True))
 def multi_agent_analysis(symbol: str, exchange: str = "KUCOIN", timeframe: str = "15m") -> dict:
     """Run a multi-agent debate (Technical, Sentiment, Risk) for a specific symbol.
 
@@ -443,7 +444,7 @@ def multi_agent_analysis(symbol: str, exchange: str = "KUCOIN", timeframe: str =
 
 # ── EGX market tools ───────────────────────────────────────────────────────────
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="EGX Market Overview", readOnlyHint=True, openWorldHint=True))
 def egx_market_overview(timeframe: str = "1D", limit: int = 10) -> dict:
     """Get a comprehensive overview of the Egyptian Exchange (EGX) market.
 
@@ -456,7 +457,7 @@ def egx_market_overview(timeframe: str = "1D", limit: int = 10) -> dict:
     return get_egx_market_overview(timeframe, limit)
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="EGX Sector Scan", readOnlyHint=True, openWorldHint=True))
 def egx_sector_scan(sector: str = "", timeframe: str = "1D", limit: int = 20) -> dict:
     """Scan EGX stocks by sector. Shows available sectors if none specified.
 
@@ -471,7 +472,7 @@ def egx_sector_scan(sector: str = "", timeframe: str = "1D", limit: int = 20) ->
     return scan_egx_sector(sector, timeframe, limit)
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="EGX Sector Rotation Scanner", readOnlyHint=True, openWorldHint=True))
 def egx_sector_scanner(
     timeframe: str = "1D",
     top_n_sectors: int = 5,
@@ -493,7 +494,7 @@ def egx_sector_scanner(
     return run_egx_sector_scanner(timeframe, top_n_sectors, top_n_stocks, min_stock_score)
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="EGX Index Analysis", readOnlyHint=True, openWorldHint=True))
 def egx_index_analysis(index: str = "EGX30", timeframe: str = "1D", limit: int = 30) -> dict:
     """Analyse an EGX index showing constituent performance with full indicators.
 
@@ -507,7 +508,7 @@ def egx_index_analysis(index: str = "EGX30", timeframe: str = "1D", limit: int =
     return analyze_egx_index(index, timeframe, limit)
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="EGX Stock Screener", readOnlyHint=True, openWorldHint=True))
 def egx_stock_screener(
     timeframe: str = "1D",
     min_score: int = 55,
@@ -528,7 +529,7 @@ def egx_stock_screener(
     return screen_egx_stocks(timeframe, min_score, index_filter, limit)
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="EGX Trade Plan", readOnlyHint=True, openWorldHint=True))
 def egx_trade_plan(symbol: str, timeframe: str = "1D") -> dict:
     """Generate a full trade plan for a specific EGX stock.
 
@@ -540,7 +541,7 @@ def egx_trade_plan(symbol: str, timeframe: str = "1D") -> dict:
     return generate_egx_trade_plan(symbol, timeframe)
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="EGX Fibonacci Retracement", readOnlyHint=True, openWorldHint=True))
 def egx_fibonacci_retracement(symbol: str, lookback: str = "52W", timeframe: str = "1D") -> dict:
     """Fibonacci retracement analysis for EGX stocks.
 
@@ -556,7 +557,7 @@ def egx_fibonacci_retracement(symbol: str, lookback: str = "52W", timeframe: str
 
 # ── Multi-timeframe analysis ───────────────────────────────────────────────────
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Multi-Timeframe Analysis", readOnlyHint=True, openWorldHint=True))
 async def multi_timeframe_analysis(symbol: str, exchange: str = "KUCOIN") -> dict:
     """Multi-timeframe alignment analysis (Weekly → Daily → 4H → 1H → 15m).
 
@@ -581,7 +582,7 @@ async def multi_timeframe_analysis(symbol: str, exchange: str = "KUCOIN") -> dic
 
 # ── Sentiment & news tools ─────────────────────────────────────────────────────
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Market News Sentiment", readOnlyHint=True, openWorldHint=True))
 def market_sentiment(symbol: str, category: str = "all", limit: int = 20) -> dict:
     """News sentiment for stocks and crypto (licensed Marketaux entity sentiment).
 
@@ -593,7 +594,7 @@ def market_sentiment(symbol: str, category: str = "all", limit: int = 20) -> dic
     return analyze_sentiment(symbol, category, limit)
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Financial News Feed", readOnlyHint=True, openWorldHint=True))
 async def financial_news(symbol: str = None, category: str = "stocks", limit: int = 10) -> dict:
     """Real-time financial news via Marketaux (licensed).
 
@@ -607,7 +608,7 @@ async def financial_news(symbol: str = None, category: str = "stocks", limit: in
     return await asyncio.to_thread(fetch_news_summary, symbol, category, limit)
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Combined TA + Sentiment + News", readOnlyHint=True, openWorldHint=True))
 async def combined_analysis(symbol: str, exchange: str = "NASDAQ", timeframe: str = "1D") -> dict:
     """POWER TOOL: TradingView technical analysis + news sentiment + financial news.
 
@@ -667,7 +668,7 @@ async def combined_analysis(symbol: str, exchange: str = "NASDAQ", timeframe: st
 
 # ── Backtest tools ─────────────────────────────────────────────────────────────
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Strategy Backtest", readOnlyHint=True, openWorldHint=True))
 def backtest_strategy(
     symbol: str,
     strategy: str,
@@ -701,7 +702,7 @@ def backtest_strategy(
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Strategy Comparison Race", readOnlyHint=True, openWorldHint=True))
 def compare_strategies(
     symbol: str,
     period: str = "1y",
@@ -721,7 +722,7 @@ def compare_strategies(
     return _compare_strategies(symbol, period, initial_capital, interval=interval)
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Walk-Forward Backtest", readOnlyHint=True, openWorldHint=True))
 def walk_forward_backtest_strategy(
     symbol: str,
     strategy: str,
@@ -757,7 +758,7 @@ def walk_forward_backtest_strategy(
 
 # ── Yahoo Finance tools ────────────────────────────────────────────────────────
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Real-Time Price Quote", readOnlyHint=True, openWorldHint=True))
 async def yahoo_price(symbol: str) -> dict:
     """Real-time price quote from Yahoo Finance for any stock, crypto, ETF or index.
 
@@ -767,7 +768,7 @@ async def yahoo_price(symbol: str) -> dict:
     return await get_price_async(normalize_yahoo_symbol(symbol))
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Global Market Snapshot", readOnlyHint=True, openWorldHint=True))
 def market_snapshot() -> dict:
     """Global market overview: major indices, top crypto, FX rates, and key ETFs.
     Powered by Yahoo Finance.
@@ -775,7 +776,7 @@ def market_snapshot() -> dict:
     return get_market_snapshot()
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Bitcoin Market Pulse", readOnlyHint=True, openWorldHint=True))
 def bitcoin_market_pulse() -> dict:
     """Single-call BTC macro context: price, dominance, total market cap + risk assessment.
 
@@ -795,7 +796,7 @@ def bitcoin_market_pulse() -> dict:
     return get_bitcoin_market_pulse()
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Extended-Hours Stock Price", readOnlyHint=True, openWorldHint=True))
 async def stock_extended_hours(symbol: str) -> dict:
     """Real-time pre-market and after-hours prices for a US stock symbol.
 
@@ -821,7 +822,7 @@ async def stock_extended_hours(symbol: str) -> dict:
     return await get_extended_hours_price_async(symbol)
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Options Chain", readOnlyHint=True, openWorldHint=True))
 def stock_options_chain(symbol: str, expiry: Optional[str] = None) -> dict:
     """Full options chain (calls + puts) for a US stock symbol and one expiry.
 
@@ -847,7 +848,7 @@ def stock_options_chain(symbol: str, expiry: Optional[str] = None) -> dict:
     return get_options_chain(symbol, expiry)
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Unusual Options Activity", readOnlyHint=True, openWorldHint=True))
 def stock_options_unusual_activity(
     symbol: str,
     top_n: int = 10,
@@ -889,7 +890,7 @@ def stock_options_unusual_activity(
 
 # ── Futures tools ─────────────────────────────────────────────────────────────
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Futures Market Overview", readOnlyHint=True, openWorldHint=True))
 def futures_market_overview(
     category: str = "all",
     exchanges: str = "us",
@@ -918,7 +919,7 @@ def futures_market_overview(
         return make_error(ErrorCode.SERVICE_ERROR, f"Futures overview failed: {exc}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Futures Top Movers", readOnlyHint=True, openWorldHint=True))
 def futures_top_movers(
     direction: str = "gainers",
     exchanges: str = "us",
@@ -950,7 +951,7 @@ def futures_top_movers(
         return make_error(ErrorCode.SERVICE_ERROR, f"Futures movers failed: {exc}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Futures Category Snapshot", readOnlyHint=True, openWorldHint=True))
 def futures_category_snapshot(category: str = "energy") -> dict:
     """Quote all major front-month contracts in a specific futures category.
 
@@ -964,7 +965,7 @@ def futures_category_snapshot(category: str = "energy") -> dict:
     return get_futures_category_snapshot(category)
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Futures Watchlist", readOnlyHint=True, openWorldHint=True))
 def futures_watchlist() -> dict:
     """Return the full categorized list of well-known front-month futures symbols.
 
@@ -974,7 +975,7 @@ def futures_watchlist() -> dict:
     return get_futures_watchlist()
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="US Stock Screener", readOnlyHint=True, openWorldHint=True))
 async def stock_screener(
     country: str = "america",
     stock_type: str = "common",
@@ -1023,7 +1024,7 @@ async def stock_screener(
         )
 
 
-@mcp.tool()
+@mcp.tool(annotations=ToolAnnotations(title="Multi-Symbol Stock Prices", readOnlyHint=True, openWorldHint=True))
 async def stock_prices(tickers: str) -> dict:
     """Current price + daily % change for specific stock symbols.
 
