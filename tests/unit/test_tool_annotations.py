@@ -31,6 +31,13 @@ def test_every_tool_is_declared_read_only():
     assert not_ro == [], f"tools not declared read-only: {not_ro}"
 
 
+def test_every_tool_explicitly_declares_non_destructive():
+    # OpenAI's plugin scanner requires an EXPLICIT true/false for
+    # destructiveHint on every tool — omitting it fails the MCP scan step.
+    missing = [t.name for t in _all_tools() if t.annotations is None or t.annotations.destructiveHint is not False]
+    assert missing == [], f"tools without explicit destructiveHint=False: {missing}"
+
+
 def test_titles_are_unique_and_human_readable():
     tools = _all_tools()
     titles = [t.annotations.title for t in tools]
