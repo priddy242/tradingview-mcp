@@ -15,11 +15,12 @@ import sys
 import time as _time
 from typing import List, Optional
 
-from tradingview_mcp.core.errors import BatchExecutionError, ErrorCode, make_error
+from tradingview_mcp.core.errors import BatchExecutionError, ErrorCode, is_error, make_error
 from tradingview_mcp.core.services.coinlist import load_symbols
 from tradingview_mcp.core.services.screener_service import (
     _batch_budget_s,
     _batch_max_consecutive_fails,
+    pick_fallback_exchange,
     symbol_not_found_error,
 )
 from tradingview_mcp.core.services.indicators import compute_metrics
@@ -200,6 +201,7 @@ def volume_confirmation_analyze(
     symbol: str,
     exchange: str,
     timeframe: str,
+    _allow_venue_fallback: bool = True,
 ) -> dict:
     """
     Detailed volume confirmation analysis for a single asset.
@@ -225,12 +227,36 @@ def volume_confirmation_analyze(
     try:
         analysis = get_multiple_analysis(screener=screener, interval=timeframe, symbols=[full_symbol])
         if not analysis or full_symbol not in analysis:
+            if _allow_venue_fallback:
+                alt = pick_fallback_exchange(symbol, exchange)
+                if alt:
+                    result = volume_confirmation_analyze(symbol, alt, timeframe, _allow_venue_fallback=False)
+                    if not is_error(result):
+                        result["requested_exchange"] = exchange
+                        result["resolved_exchange"] = alt
+                        result["resolution_note"] = (
+                            f"{symbol} has no usable data on {exchange}; analysis was run on "
+                            f"{alt}, which lists it. Pass exchange='{alt}' to silence this note."
+                        )
+                        return result
             return symbol_not_found_error(
                 symbol, exchange, timeframe=timeframe, full_symbol=full_symbol
             )
 
         data = analysis[full_symbol]
         if not data or not hasattr(data, "indicators"):
+            if _allow_venue_fallback:
+                alt = pick_fallback_exchange(symbol, exchange)
+                if alt:
+                    result = volume_confirmation_analyze(symbol, alt, timeframe, _allow_venue_fallback=False)
+                    if not is_error(result):
+                        result["requested_exchange"] = exchange
+                        result["resolved_exchange"] = alt
+                        result["resolution_note"] = (
+                            f"{symbol} has no usable data on {exchange}; analysis was run on "
+                            f"{alt}, which lists it. Pass exchange='{alt}' to silence this note."
+                        )
+                        return result
             return make_error(
                 ErrorCode.NO_DATA,
                 f"No indicator data for {full_symbol}. The venue returned a row "

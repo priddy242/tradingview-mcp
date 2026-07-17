@@ -16,7 +16,7 @@ import sys
 import time as _time
 from typing import Any, List, Optional
 
-from tradingview_mcp.core.errors import BatchExecutionError, ErrorCode, make_error
+from tradingview_mcp.core.errors import BatchExecutionError, ErrorCode, is_error, make_error
 from tradingview_mcp.core.types import (
     IndicatorMap, MultiRow, Row,
     percent_change, tf_to_tv_resolution,
@@ -568,6 +568,30 @@ def fetch_multi_timeframe_patterns(
 
 # ── Coin analysis (single asset) ───────────────────────────────────────────────
 
+# Preference order for auto-venue fallback. Telemetry: one paying customer's
+# hourly automation asked for HYPEUSDT@binance 100+ times a week; the
+# SYMBOL_NOT_FOUND envelope named the right venues but the automation never
+# read it. When the requested venue doesn't list a ticker that another venue
+# does, failing a deterministic request helps nobody — analyze on a listing
+# venue and SAY SO in the response (requested_exchange/resolved_exchange).
+# KUCOIN/MEXC first: their screener rows have been the most complete for the
+# long-tail tickers this fallback exists for.
+_FALLBACK_VENUE_PREFERENCE = ("KUCOIN", "MEXC", "GATEIO", "BYBIT", "OKX", "HUOBI")
+
+
+def pick_fallback_exchange(symbol: str, requested_exchange: str) -> Optional[str]:
+    """Best alternative venue that actually lists `symbol`, or None."""
+    listed = [e.upper() for e in exchanges_listing_symbol(symbol)]
+    req = (requested_exchange or "").upper()
+    candidates = [e for e in listed if e != req]
+    if not candidates:
+        return None
+    for pref in _FALLBACK_VENUE_PREFERENCE:
+        if pref in candidates:
+            return pref
+    return candidates[0]
+
+
 def symbol_not_found_error(symbol: str, exchange: str, **context: Any) -> dict:
     """SYMBOL_NOT_FOUND envelope with actionable, locally-sourced suggestions.
 
@@ -601,6 +625,7 @@ def analyze_coin(
     symbol: str,
     exchange: str,
     timeframe: str,
+    _allow_venue_fallback: bool = True,
 ) -> dict:
     """
     Full technical analysis for a single coin/stock.
@@ -635,6 +660,18 @@ def analyze_coin(
         analysis = get_multiple_analysis(screener=screener, interval=timeframe, symbols=[full_symbol])
 
         if full_symbol not in analysis or analysis[full_symbol] is None:
+            if _allow_venue_fallback:
+                alt = pick_fallback_exchange(symbol, exchange)
+                if alt:
+                    result = analyze_coin(symbol, alt, timeframe, _allow_venue_fallback=False)
+                    if not is_error(result):
+                        result["requested_exchange"] = exchange
+                        result["resolved_exchange"] = alt
+                        result["resolution_note"] = (
+                            f"{symbol} is not listed on {exchange}; analysis was run on "
+                            f"{alt}, which lists it. Pass exchange=\"{alt}\" to silence this note."
+                        )
+                        return result
             return symbol_not_found_error(symbol, exchange, timeframe=timeframe)
 
         data = analysis[full_symbol]
