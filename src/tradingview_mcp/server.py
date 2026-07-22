@@ -15,7 +15,8 @@ import asyncio
 import os
 from typing import Optional
 
-from mcp.server.fastmcp import FastMCP from mcp.server.transport_security import TransportSecuritySettings
+from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import ToolAnnotations
 
 # ── Service imports ────────────────────────────────────────────────────────────
