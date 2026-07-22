@@ -15,7 +15,7 @@ import asyncio
 import os
 from typing import Optional
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp import FastMCP from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import ToolAnnotations
 
 # ── Service imports ────────────────────────────────────────────────────────────
@@ -99,7 +99,10 @@ except ImportError:
 
 # ── MCP server instance ────────────────────────────────────────────────────────
 
-mcp = FastMCP(
+mcp = FastMCP(host="0.0.0.0",
+       transport_security=TransportSecuritySettings(
+           enable_dns_rebinding_protection=False,
+       ),
     name="TradingView Multi-Market Screener",
     instructions=(
         "Multi-market screener backed by TradingView. "
